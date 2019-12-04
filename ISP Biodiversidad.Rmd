@@ -1,0 +1,431 @@
+---
+title: "Análisis en R de la biodiversidad del intermareal"
+author: "Zach DiNardo"
+date: "3/12/2019"
+output: 
+  pdf_document: 
+    toc: yes
+fontsize: 9pt
+---
+\pagebreak
+
+# Configuración
+
+```{r setup}
+# , include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#cargar package 
+library(vegan) 
+library(viridis) #colores divertidos 
+library(latex2exp)
+
+#instantiate matrices/data.frame 
+muestra.mat <- matrix(c(75,0,48,0,0,0,0,0,0,0,0,0,0,0,2,0,3,0,7,0,17,0,65,0,
+                        0,0,0,0,0,0,9,0,8,0,17,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        0,0,34,20.5,0,0,0,0,2,26,2,20.5,2,22.5,12,28.8,0,0,1,
+                        17.0,4,23.5,1,10,0,0,0,0,1,34,13,32.2,17,33.5,0,0,17,
+                        34.5,23,34.8,6,35.3,1,26,0,0,1,36,0,0,3,0,1,9,0,0,0,0,
+                        0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,15,0,0,0,0,0,0,0,0,0,0,
+                        1,21,0,0,0,0,0,0,3,14.7,6,15.2,0,0,0,0,1,0,1,8,0,0,0,
+                        0,0,0,0,0,0,0,0,0,0,0,1,7,0,0,0,0,0,0,0,0,0,0,1,7,0,0,
+                        1,8,1,7,0,0,0,0,1,6,0,0,0,0,0,0,0,0,1,15,0,0,0,0,0,0,
+                        0,0,0,0,0,0,1,19,0,0,1,19,0,0,0,0,0,0,0,0,1,11,0,0,0,
+                        0,2,11.5,0,0,0,0,0,0,0,0,1,8,0,0,0,0,0,0,0,0,0,0,0,0,
+                        0,0,1,12,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        0,9,16.7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,11,
+                        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+                        7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,14.6,1,
+                        14,0,0,0,0,1,18,0,0,0,0,0,0,3,19.7,1,18,0,0,2,21,2,26.2,
+                        3,30,0,0,0,0,5,10.8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+                        7,2,4,0,0,0,0,0,0,0,0,0,0,0,0,3,4.3,1,6,0,0,2,8,2,3.5,
+                        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        0,0,0,1,41,0,0,0,0,0,0,0,0,1,28,0,0,0,0,0,0,0,0,0,0,1,
+                        8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        0,0,0,0,0,0,0,0,0,0,2,14,0,0,0,0,1,31,0,0,0,0,0,0,0,0,
+                        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        0,0,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,2,14.5,0,0,149,
+                        8.1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        0,0,0,0,0,0,0,0,0,0,0,0,0,2,20,0,0,0,0,0,0,0,0,0,0,0,0),
+                      nrow = 50)
+muestra.frame <- data.frame(muestra.mat,
+                            row.names = c("m1","m1t","m2","m2t","m3","m3t",
+                                          "m4","m4t","m5","m5t","m6","m6t",
+                                          "m7","m7t","m8","m8t","m9","m9t",
+                                          "m10","m10t","m11","m11t","m12","m12t",
+                                          "m13","m13t","m14","m14t","m15","m15t",
+                                          "m16","m16t","m17","m17t","m18","m18t",
+                                          "m19","m19t","m20","m20t","m21","m21t",
+                                          "m22","m22t","m23","m23t","m24","m24t",
+                                          "m25","m25t"))
+colnames(muestra.frame) <- c("poliquetos","Mytilus edulis","Darina solenoides",
+                             "Perumytilus purpuratus","Pareuthria","petricolidae",
+                             "Tonicia lebruni","Tonicia atrata","Nacella",
+                             "Diloma nigerrima","Trophon","Anasterias minuta",
+                             "isópodo","Aulacomya atra atra")
+
+#extraer muestras (sin tamaños)
+odds <- seq(1,50,2)
+muestra.conP <- data.frame(muestra.frame[odds,])
+muestra <- muestra.conP[,2:14]
+
+#parejar coordinatos con cada muestra 
+muestra.coord <- data.frame(c("D","E","A","A","B","B","B","E","E","B","B",
+                              "C","A","A","A","C","C","C","D","D","D","D",
+                              "C","E","E"))
+colnames(muestra.coord) <- c("letra")
+muestra.coord["num"] <- c("2","1","1","2","5","4","3","5","4","1","2","2",
+                          "5","4","3","5","4","3","5","4","3","1","1","3","2")
+muestra.order <- matrix(c("m8","m9","m24","m25","m2","m19","m20","m21","m1",
+                          "m22","m16","m17","m18","m12","m23","m5","m6","m7","m11",
+                          "m10","m13","m14","m15","m4","m3"), 
+                        nrow = 5, ncol = 5, byrow = TRUE)
+
+#computar datos juntados 
+totalSpec <- colSums(muestra, na.rm = TRUE)
+
+#formar matrice sin datos vacios 
+row_sub = apply(muestra, 1, function(row) all(row ==0 ))
+row_sub
+muestra.noVacio <- muestra[!row_sub,]
+muestra.almenosdos <- muestra.noVacio[
+  c('m1','m2','m7','m8','m9','m10','m11','m12','m16',
+    'm17','m18','m19','m20','m21','m22','m24'),]
+
+#obtener sumas de las muestras juntadas por su letra y por su  número de los especies 
+x <- 1
+#letra
+letraGrupo <- array(,c(5,25))
+for(letter in c("A","B","C","D","E")){
+  letraGrupo[x,] <- muestra.coord$letra == letter
+  x <- x + 1
+}
+specXletra <- array(,c(5,13)) #cada caja i,j tiene todos vistos de especie j en letra i  
+for(x in c(1,2,3,4,5)){
+  specXletra[x,] <- colSums(muestra[letraGrupo[x,]==TRUE,]) 
+}
+rownames(specXletra) <- c("A","B","C","D","E")
+colnames(specXletra) <- c("Mytilus edulis","Darina solenoides",
+                          "Perumytilus purpuratus","Pareuthria",
+                          "petricolidae","Tonicia lebruni",
+                          "Tonicia atrata","Nacella","Diloma nigerrima",
+                          "Trophon","Anasterias minuta","isópodo",
+                          "Aulacomya atra atra")
+
+#número
+numGrupo <- array(,c(5,25))
+x <- 1
+for(num in c("1","2","3","4","5")){
+  numGrupo[x,] <- muestra.coord$num == num
+  x <- x + 1
+}
+specXnum <- array(, c(5,13)) #mismo array que arriba pero con número i 
+for(x in c(1,2,3,4,5)){
+  specXnum[x,] <- colSums(muestra[numGrupo[x,]==TRUE,]) 
+}
+rownames(specXnum) <- c("1","2","3","4","5")
+colnames(specXnum) <- c("Mytilus edulis","Darina solenoides",
+                        "Perumytilus purpuratus","Pareuthria",
+                        "petricolidae","Tonicia lebruni","Tonicia atrata",
+                        "Nacella","Diloma nigerrima","Trophon",
+                        "Anasterias minuta","isópodo","Aulacomya atra atra")
+```
+
+# Datos crudos (formato de: data.frame) 
+
+```{r datos, font}
+muestra
+
+muestraorg <- rowSums(muestra)
+muestraorg
+matorg <- matrix(c(muestraorg["m8"],muestraorg["m9"],37,muestraorg["m25"],
+                   muestraorg["m2"],muestraorg["m19"],muestraorg["m20"],
+                   muestraorg["m21"],muestraorg["m1"],muestraorg["m22"],
+                   muestraorg["m16"],muestraorg["m17"],muestraorg["m18"],
+                   muestraorg["m12"],muestraorg["m23"],muestraorg["m5"],
+                   muestraorg["m6"],muestraorg["m7"],muestraorg["m11"],
+                   muestraorg["m10"],muestraorg["m13"],muestraorg["m14"],
+                   muestraorg["m15"],muestraorg["m4"],muestraorg["m3"]), 
+                 nrow = 5, ncol = 5, byrow = TRUE)
+
+muestraspec <- specnumber(muestra)
+muestraspec
+matspec <- matrix(c(muestraspec["m8"],muestraspec["m9"],muestraspec["m24"],
+                    muestraspec["m25"],muestraspec["m2"],muestraspec["m19"],
+                    muestraspec["m20"],muestraspec["m21"],muestraspec["m1"],
+                    muestraspec["m22"],muestraspec["m16"],muestraspec["m17"],
+                    muestraspec["m18"],muestraspec["m12"],muestraspec["m23"],
+                    muestraspec["m5"],muestraspec["m6"],muestraspec["m7"],
+                    muestraspec["m11"],muestraspec["m10"],muestraspec["m13"],
+                    muestraspec["m14"],muestraspec["m15"],muestraspec["m4"],
+                    muestraspec["m3"]), nrow = 5, ncol = 5, byrow = TRUE)
+
+heatmap(matorg, Rowv = NA, Colv = NA, col = inferno(256,begin = 0.25, end = 1, 
+                                                    direction = -1), main = 
+          "Cantidad de organismos", revC = TRUE, scale = "none", 
+        labRow = c("E","D","C","B","A"), labCol = seq(5,1)) #heatmap 
+heatmap(matspec, Rowv = NA, Colv = NA, col = inferno(256,begin = 0.25, end = 1, 
+                                                     direction = -1), 
+        main = "Cantidad de especies", revC = TRUE, scale = "none", 
+        labRow = c("E","D","C","B","A"), labCol = seq(5,1)) #heatmap 
+
+#muestraspec["m24"]
+```
+
+# Biodiversidad ($\alpha$)
+## El índice de Shannon para la diversidad: 
+```{r}
+#, echo=FALSE}
+Hletra <- diversity(specXletra) 
+Hnum <- diversity(specXnum)
+Htod <- diversity(totalSpec)
+```
+
+```{r}
+H <- diversity(muestra) #calcular diversidad 
+#abajo: ordenar para que los números coordenen con donde saqué las muestras 
+Hmat <- matrix(c(H["m8"],H["m9"],H["m24"],H["m25"],H["m2"],H["m19"],H["m20"],
+                 H["m21"],H["m1"],H["m22"],H["m16"],H["m17"],H["m18"],H["m12"],
+                 H["m23"],H["m5"],H["m6"],H["m7"],H["m11"],H["m10"],H["m13"],
+                 H["m14"],H["m15"],H["m4"],H["m3"]), nrow = 5, ncol = 5, byrow = TRUE)
+Hmat #mostrar, porque no
+heatmap(Hmat, Rowv = NA, Colv = NA, col = inferno(256,begin = 0.25, 
+                                                  end = 1, direction = -1),
+        main = "H' (diversidad) por muestra", revC = TRUE, scale = "none", 
+        labRow = c("E","D","C","B","A"), labCol = seq(5,1)) #heatmap 
+
+barplot(sort(diversity(muestra.almenosdos),TRUE), 
+        names.arg = c(19,22,16,8,12,9,11,10,18,7,21,1,20,17,2,24), 
+        main = "H' (diversidad) por muestra", 
+        xlab = "Muestra", ylab = "H'", col = viridis::inferno(16), ylim = c(0,2)) 
+#cada muestra, nombres de los bares por mano de sort() 
+
+barplot(Hletra, names.arg = c("A","B","C","D","E"), main = "H' (diversidad) por letra", 
+        xlab = "Línea", ylab = "H'", col = viridis::inferno(5), ylim = c(0,2)) 
+#por letra (playa hacia el mar)
+barplot(Hnum, names.arg = c("1","2","3","4","5"), main = "H' (diversidad) por número", 
+        xlab = "Línea", ylab = "H'", col = viridis::inferno(5), ylim = c(0,2)) 
+#por línea (sureste hacia noroeste)
+Htod #toda diversidad (toda muestras)
+```
+
+## Equitabilidad (de Pielou)
+```{r}
+#, echo=FALSE}
+J <- H/log(specnumber(muestra))
+
+Jletra <- Hletra/log(specnumber(specXletra))
+Jnum <- Hnum/log(specnumber(specXnum))
+Jtod <- Htod/log(specnumber(totalSpec))
+```
+
+```{r, fig.height=3}
+J <- H/log(specnumber(muestra))
+J[is.nan(J)] <- 0 #convertir los NaN al 0
+Jmat <- matrix(c(J["m8"],J["m9"],J["m24"],J["m25"],J["m2"],J["m19"],J["m20"],
+                 J["m21"],J["m1"],J["m22"],J["m16"],J["m17"],J["m18"],J["m12"],
+                 J["m23"],J["m5"],J["m6"],J["m7"],J["m11"],J["m10"],J["m13"],
+                 J["m14"],J["m15"],J["m4"],J["m3"]), nrow = 5, ncol = 5, byrow = TRUE)
+Jmat
+heatmap(Jmat, Rowv = NA, Colv = NA, col = inferno(256,begin = 0.25, end = 1, 
+                                                  direction = -1), 
+        main = "J (equitabilidad) por muestra", revC = TRUE, scale = "none", 
+        labRow = c("E","D","C","B","A"), labCol = seq(5,1))
+barplot(sort(H/log(specnumber(muestra)),TRUE)[1:16], 
+        names.arg = c(10,18,12,9,22,7,21,1,8,11,16,19,20,17,2,24), 
+        main = "J (equitabilidad) por muestra", xlab = "Muestra", 
+        ylab = "J", col = viridis::inferno(16), ylim = c(0,1)) #cada muestra 
+
+barplot(Jletra, names.arg = c("A","B","C","D","E"), 
+        main = "J (equitabilidad) por letra", xlab = "Línea", ylab = "J", 
+        col = viridis::inferno(5), ylim = c(0,1))
+barplot(Jnum, names.arg = c("1","2","3","4","5"), 
+        main = "J (equitabilidad) por número", xlab = "Línea", ylab = "J", 
+        col = viridis::inferno(5), ylim = c(0,1))
+Jtod
+```
+
+## Riqueza (de Margalef) 
+```{r}
+#, echo=FALSE}
+Nletra <- rowSums(specXletra)
+Sletra <- rowSums(specXletra != 0)
+dletra <- (Sletra - 1)/log(Nletra)
+Nnum <- rowSums(specXnum)
+Snum <- rowSums(specXnum != 0)
+dnum <- (Snum - 1)/log(Nnum)
+Ntod <- sum(totalSpec)
+Stod <- sum(totalSpec != 0)
+dtod <- (Stod - 1)/log(Ntod)
+```
+
+```{r}
+# N: num individuos; S: num especies 
+N <- rowSums(muestra.almenosdos)
+S <- rowSums(muestra.almenosdos != 0)
+d <- (S-1)/log(N)
+d
+mean(d)
+sort(d, decreasing = TRUE)
+dmat <- matrix(c(d["m8"],d["m9"],d["m24"],d["m25"],d["m2"],d["m19"],d["m20"],
+                 d["m21"],d["m1"],d["m22"],d["m16"],d["m17"],d["m18"],d["m12"],
+                 d["m23"],d["m5"],d["m6"],d["m7"],d["m11"],d["m10"],d["m13"],
+                 d["m14"],d["m15"],d["m4"],d["m3"]), nrow = 5, ncol = 5, byrow = TRUE)
+dmat[is.na(dmat)] <- 0
+dmat
+heatmap(dmat, Rowv = NA, Colv = NA, col = inferno(256,begin = 0.25, end = 1, 
+                                                  direction = -1), 
+        main = "d (riqueza) por muestra", revC = TRUE, scale = "none", 
+        labRow = c("E","D","C","B","A"), labCol = seq(5,1))
+
+barplot(sort(d,TRUE)[1:16], names.arg = c(19,22,16,12,9,10,18,8,11,7,2,1,17,20,24,21), 
+        main = "d (riqueza) por muestra", xlab = "Muestra", ylab = "d", 
+        col = viridis::inferno(16), ylim = c(0,2.5)) #cada muestra 
+
+Jletra <- Hletra/log(specnumber(specXletra))
+Jnum <- Hnum/log(specnumber(specXnum))
+Jtod <- Htod/log(specnumber(totalSpec))
+Nletra <- rowSums(specXletra)
+Sletra <- rowSums(specXletra != 0)
+Nnum <- rowSums(specXnum)
+Snum <- rowSums(specXnum != 0)
+dletra <- (Sletra-1)/log(Nletra)
+dnum <- (Snum-1)/log(Nnum)
+Ntod <- sum(totalSpec)
+Stod <- sum(totalSpec != 0)
+dtod <- (Stod-1)/log(Ntod)
+
+barplot(dletra, names.arg = c("A","B","C","D","E"), main = "d (riqueza) por letra", 
+        xlab = "Línea", ylab = "d", col = viridis::inferno(5), ylim = c(0,2.5))
+barplot(dnum, names.arg = c("1","2","3","4","5"), main = "d (riqueza) por número", 
+        xlab = "Línea", ylab = "d", col = viridis::inferno(5), ylim = c(0,2.5))
+
+dtod
+```
+
+## Renyi 
+Las líneas son para todos, los puntos para cada caja
+```{r}
+k <- sample(nrow(muestra), 6)
+R <- renyi(muestra.noVacio)
+plot(R, main = "Gráfica de Renyi", ylab = "Diversidad", 
+     xlab = "Escala de Diversidad Rényi")
+Rletra <- renyi(specXletra)
+Rnum <- renyi(specXnum)
+plot(Rletra, main = "Gráfica de Renyi por letra", ylab = "Diversidad", 
+     xlab = "Escala de Diversidad Rényi")
+Rnum[c(1,2,3),]
+all(Rnum[4,] > Rnum[5,])
+# A < B < {C,D,E}   E < D
+# 1 < 5   3 < 5   4 < {2,5,1}
+plot(Rnum, main = "Gráfica de Renyi por número", ylab = "Diversidad", 
+     xlab = "Escala de Diversidad Rényi")
+```
+
+## Fisher $\alpha$ 
+```{r}
+alpha <- fisher.alpha(muestra.almenosdos[c(1,2,3,4,5,7,9,10,12,13,14,15),])
+alpha
+hist(alpha)
+barplot(sort(alpha, TRUE), names.arg = c(22,9,19,16,7,11,8,1,2,17,20,21), 
+        main = TeX('Fisher $\\alpha$ por muestra'), xlab = "Muestra", 
+        ylab = TeX('$\\alpha$'), col = viridis::inferno(12), ylim = c(0,6))
+```
+
+# Diversidad $\beta$ 
+```{r}
+(ncol(muestra))/mean(specnumber(muestra)) - 1 
+# Tuomisto 2010a beta div (pero crece con más sitios)
+beta <- vegdist(muestra.almenosdos, binary=TRUE) 
+# Sorensen index (no crece con más sitios)
+(mean(beta))
+
+barplot((specnumber(specXletra))/mean(specnumber(muestra)) - 1, 
+        main = TeX('$\\beta$ diversidad por línea de letra'), xlab = "Línea", 
+        ylab = "Diversidad", col = viridis::inferno(5), ylim = c(-1,4))
+barplot((specnumber(specXnum))/mean(specnumber(muestra)) - 1, 
+        main = TeX('$\\beta$ diversidad por línea de número'), xlab = "Línea", 
+        ylab = "Diversidad", col = viridis::inferno(5), ylim = c(-1,4))
+betaletra <- vegdist(specXletra, binary=TRUE) 
+# Sorensen index (no crece con más sitios)
+betanum <- vegdist(specXnum, binary=TRUE) 
+# Sorensen index (no crece con más sitios)
+(mean(betaletra))
+(mean(betanum))
+mean(betaletra) - mean(betanum)
+
+B <- 10^4
+permutedMeanDiff <- numeric(B)
+c <- 1
+for(b in 1:B){
+  newLetraCoords <- sample(muestra.coord$letra,replace = TRUE)
+  sampledletraGrupo <- array(,c(5,25))
+  x <- 1
+  for(letter in c("A","B","C","D","E")){
+    sampledletraGrupo[x,] <- newLetraCoords == letter
+    x <- x + 1
+  }
+  sampledSpecXletra <- array(,c(5,13)) 
+  #cada caja i,j tiene todos vistos de especie j en letra i  
+  for(x in c(1,2,3,4,5)){
+    sampledSpecXletra[x,] <- colSums(muestra[sampledletraGrupo[x,]==TRUE,]) 
+  }
+  
+  #número
+  newNumCoords <- sample(muestra.coord$num,replace = TRUE)
+  samplednumGrupo <- array(,c(5,25))
+  x <- 1
+  for(num in c("1","2","3","4","5")){
+    samplednumGrupo[x,] <- newNumCoords == num
+    x <- x + 1
+  }
+  sampledSpecXnum <- array(, c(5,13)) 
+  #mismo array que arriba pero con número i 
+  
+  for(x in c(1,2,3,4,5)){
+    sampledSpecXnum[x,] <- colSums(muestra[samplednumGrupo[x,]==TRUE,]) 
+  }
+  evaluate <- any(rowSums(sampledSpecXletra) == 0) | 
+    any(rowSums(sampledSpecXnum) == 0)
+  if(!evaluate){
+    permbetaletra <- vegdist(sampledSpecXletra, binary=TRUE) 
+    # Sorensen index (no crece con más sitios)
+    
+    permbetanum <- vegdist(sampledSpecXnum, binary=TRUE) 
+    # Sorensen index (no crece con más sitios)
+    
+    permutedMeanDiff[c] <- mean(permbetaletra) - mean(permbetanum)
+    c <-  c + 1
+  }
+}
+hist(permutedMeanDiff[1:c], breaks = 100)
+abline(v=(mean(betaletra) - mean(betanum)), col = 'red')
+(sum(permutedMeanDiff[1:c] > (mean(betaletra) - mean(betanum))) + 1) / (c + 1)
+```
+
+# Gráfico de la acumulación de especies 
+```{r}
+sac <- vegan::specaccum(muestra) # Kindt’s exact method
+plot(sac, ci.type="polygon", ci.col=inferno(5)[5], xlab = "Número de sitios", 
+     ylab = "Número de especies", main = "Acumulación de especies", ylim = c(-2,15))
+sac
+```
+
+# Estimación de especies faltados 
+cantidad actual de especies (pienso que jackknife es el mejor: "we missed about as many species as we saw only once, and the idea in bootstrap that if we repeat sampling (with replacement) from the same data, we miss as many species as we missed originally" (Vegan Vignette).)
+```{r}
+especJuntados <- specpool(muestra) 
+especJuntados
+B <- 10^4
+b <-  1
+jackknife_estim <- numeric(B)
+for(b in 1:B){
+  s <- sample(nrow(muestra), 20)
+  jackknife_estim[b] <- as.numeric(specpool(muestra[s,])[4])
+}
+mean(jackknife_estim)
+#15.39333 con 10,000 veces y 20 muestras 
+```
+
